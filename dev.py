@@ -23,7 +23,26 @@ class TrainingConfig:
 
 cfg = TrainingConfig()
 
-ds = None  # TODO: load dataset
+def load_train_data(image_folder, segmentation_folder):
+    image_segmentation_pairs = {"image": [], "segmentation": []}
+    for filename in os.listdir(image_folder):
+        if filename.endswith(".JPG"):
+            image_path = os.path.join(image_folder, filename)
+            segmentation_path = os.path.join(segmentation_folder, filename.replace(".JPG", "_gt.npy"))
+
+            image = Image.open(image_path)
+            segmentation = np.load(segmentation_path)
+
+            image_segmentation_pairs["image"].append(image)
+            image_segmentation_pairs["segmentation"].append(segmentation)
+
+    dataset = Dataset.from_dict(image_segmentation_pairs)
+    return dataset
+
+image_folder = "data/train/image"
+segmentation_folder = "data/train/label"
+
+ds = load_train_data(image_folder, segmentation_folder)
 ds.shuffle(seed=cfg.seed)
 
 id2label = {
