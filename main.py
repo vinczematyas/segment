@@ -32,7 +32,7 @@ train_ds = SegmentationDataset(ds["train"], train_transform)
 test_ds = SegmentationDataset(ds["test"], test_transform)
 
 # Create the dataloaders
-train_dl = DataLoader(train_ds, batch_size=2, shuffle=True, collate_fn=collate_fn)
+train_dl = DataLoader(train_ds, batch_size=2, shuffle=True, collate_fn=collate_fn, drop_last=True)
 test_dl = DataLoader(test_ds, batch_size=2, shuffle=False, collate_fn=collate_fn)
 
 model = Dinov2ForSemanticSegmentation.from_pretrained("facebook/dinov2-base", id2label=id2label, num_labels=len(id2label))
@@ -52,7 +52,7 @@ model.train()
 
 for epoch in range(epochs):
     print("Epoch:", epoch)
-    for idx, batch in enumerate(tqdm(train_dl)):
+    for idx, batch in enumerate(tqdm(train_dl), ):
         pixel_values = batch["pixel_values"].to(device)
         labels = batch["labels"].to(device)
 
@@ -73,7 +73,7 @@ for epoch in range(epochs):
             # note that the metric expects predictions + labels as numpy arrays
             metric.add_batch(predictions=predicted.detach().cpu().numpy(), references=labels.detach().cpu().numpy())
 
-        if idx % 100 == 0:
+        if (idx+1) % 100 == 0:
             metrics = metric.compute(
                 num_labels=len(id2label),
                 ignore_index=0,
