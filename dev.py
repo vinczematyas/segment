@@ -11,7 +11,7 @@ from src.dino import Dinov2ForSemanticSegmentation
 
 # Load dataset from Hugging Face
 ds = load_dataset("vinczematyas/stranger_sections_2")
-print(id2label)
+
 # Visualize a random image
 # idx = np.random.randint(0, len(ds["train"]))
 # visualize_map(ds["train"][idx]["image"], np.array(ds["train"][idx]["segmentation"]))
