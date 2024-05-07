@@ -40,9 +40,6 @@ for name, param in model.named_parameters():
     if name.startswith("dinov2"):
         param.requires_grad = False
 
-batch = next(iter(train_dataloader))
-outputs = model(pixel_values=batch["pixel_values"], labels=batch["labels"])
-
 epochs = 1
 optimizer = AdamW(model.parameters(), lr=5e-5)
 
