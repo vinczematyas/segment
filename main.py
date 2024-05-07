@@ -1,3 +1,4 @@
+# Ash was here!
 import numpy as np
 import matplotlib.pyplot as plt
 from datasets import load_dataset
@@ -20,14 +21,20 @@ ds = load_dataset("vinczematyas/stranger_sections_2")
 # visualize_map(ds["train"][idx]["image"], np.array(ds["train"][idx]["segmentation"]))
 
 # Define the transforms
-train_transform = A.Compose([
-    A.Resize(448, 448),  # TODO: what shoudl be the size?
-    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))  # TODO: change from ImageNet mean and std
-    # TODO: add more augmentations
-])
-test_transform = A.Compose([
-    A.Resize(448, 448),
-])
+train_transform = A.Compose(
+    [
+        A.Resize(448, 448),  # TODO: what shoudl be the size?
+        A.Normalize(
+            mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)
+        ),  # TODO: change from ImageNet mean and std
+        # TODO: add more augmentations
+    ]
+)
+test_transform = A.Compose(
+    [
+        A.Resize(448, 448),
+    ]
+)
 
 # Create the datasets
 train_ds = SegmentationDataset(ds["train"], train_transform)
@@ -37,7 +44,9 @@ test_ds = SegmentationDataset(ds["test"], test_transform)
 train_dl = DataLoader(train_ds, batch_size=1, shuffle=True, collate_fn=collate_fn)
 test_dl = DataLoader(test_ds, batch_size=1, shuffle=False, collate_fn=collate_fn)
 
-model = Dinov2ForSemanticSegmentation.from_pretrained("facebook/dinov2-base", id2label=id2label, num_labels=len(id2label))
+model = Dinov2ForSemanticSegmentation.from_pretrained(
+    "facebook/dinov2-base", id2label=id2label, num_labels=len(id2label)
+)
 
 for name, param in model.named_parameters():
     if name.startswith("dinov2"):
@@ -73,9 +82,12 @@ for epoch in range(epochs):
             predicted = outputs.logits.argmax(dim=1)
 
             # note that the metric expects predictions + labels as numpy arrays
-            metric.add_batch(predictions=predicted.detach().cpu().numpy(), references=labels.detach().cpu().numpy())
+            metric.add_batch(
+                predictions=predicted.detach().cpu().numpy(),
+                references=labels.detach().cpu().numpy(),
+            )
 
-        if (idx+1) % 10 == 0:
+        if (idx + 1) % 10 == 0:
             metrics = metric.compute(
                 num_labels=len(id2label),
                 ignore_index=0,
@@ -95,13 +107,11 @@ with torch.no_grad():
         outputs = model(pixel_values)
 
         upsampled_logits = torch.nn.functional.interpolate(
-            outputs.logits,
-            size=(1024, 1360), 
-            mode="bilinear",
-            align_corners=False
+            outputs.logits, size=(1024, 1360), mode="bilinear", align_corners=False
         )
 
         predicted = upsampled_logits.argmax(dim=1)
 
-        np.save(f"predictions/{batch['file_names'][0]}_pred.npy", predicted.cpu().numpy())
-
+        np.save(
+            f"predictions/{batch['file_names'][0]}_pred.npy", predicted.cpu().numpy()
+        )
