@@ -73,7 +73,7 @@ for epoch in range(epochs):
             # note that the metric expects predictions + labels as numpy arrays
             metric.add_batch(predictions=predicted.detach().cpu().numpy(), references=labels.detach().cpu().numpy())
 
-        if (idx+1) % 100 == 0:
+        if (idx+1) % 10 == 0:
             metrics = metric.compute(
                 num_labels=len(id2label),
                 ignore_index=0,
