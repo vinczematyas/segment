@@ -30,10 +30,8 @@ id2color = {
 
 # Visualize the dataset
 def visualize_map(image, segmentation_map):
-    print(segmentation_map)
     color_seg = np.zeros((segmentation_map.shape[0], segmentation_map.shape[1], 3), dtype=np.uint8) # height, width, 3
     for label, color in id2color.items():
-        print(segmentation_map == label)
         color_seg[segmentation_map == label, :] = color
 
     # Show image + mask
