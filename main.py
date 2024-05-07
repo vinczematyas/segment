@@ -49,11 +49,13 @@ optimizer = AdamW(model.parameters(), lr=5e-5)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model.to(device)
 
+print(evaluate.list_evaluation_modules)
+metric = evaluate.load("mean_iou")
 model.train()
 
 for epoch in range(epochs):
     print("Epoch:", epoch)
-    for idx, batch in enumerate(tqdm(train_dataloader)):
+    for idx, batch in enumerate(tqdm(train_dl)):
         pixel_values = batch["pixel_values"].to(device)
         labels = batch["labels"].to(device)
 
