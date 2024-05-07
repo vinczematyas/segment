@@ -47,7 +47,9 @@ optimizer = AdamW(model.parameters(), lr=5e-5)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model.to(device)
 
-print(evaluate.list_evaluation_modules)
+evaluate.list_evaluation_modules
+assert False
+
 metric = evaluate.load("mean_iou")
 model.train()
 
