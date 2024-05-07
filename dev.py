@@ -1,13 +1,9 @@
 import numpy as np
-from typing import Literal
 import matplotlib.pyplot as plt
-import PIL.Image as Image
-from glob import glob
 from datasets import load_dataset
 import torch
 import albumentations as A
 from typing import Optional
-from dataclasses import dataclass, field
 
 # Load dataset from Hugging Face
 ds = load_dataset("vinczematyas/stranger_sections_2")
