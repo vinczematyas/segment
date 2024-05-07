@@ -5,6 +5,8 @@ import torch
 from torch.utils.data import DataLoader
 import albumentations as A
 from typing import Optional
+from torch.optim import AdamW
+from tqdm.auto import tqdm
 
 from src.utils import visualize_map, SegmentationDataset, collate_fn, id2label
 from src.dino import Dinov2ForSemanticSegmentation
@@ -35,6 +37,53 @@ test_dl = DataLoader(test_ds, batch_size=2, shuffle=False, collate_fn=collate_fn
 model = Dinov2ForSemanticSegmentation.from_pretrained("facebook/dinov2-base", id2label=id2label, num_labels=len(id2label))
 
 for name, param in model.named_parameters():
-  if name.startswith("dinov2"):
-    param.requires_grad = False
-print(model)
+    if name.startswith("dinov2"):
+        param.requires_grad = False
+
+batch = next(iter(train_dataloader))
+outputs = model(pixel_values=batch["pixel_values"], labels=batch["labels"])
+
+epochs = 1
+optimizer = AdamW(model.parameters(), lr=5e-5)
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model.to(device)
+
+model.train()
+
+for epoch in range(epochs):
+    print("Epoch:", epoch)
+    for idx, batch in enumerate(tqdm(train_dataloader)):
+        pixel_values = batch["pixel_values"].to(device)
+        labels = batch["labels"].to(device)
+
+    # forward pass
+    outputs = model(pixel_values, labels=labels)
+    loss = outputs.loss
+
+    loss.backward()
+    optimizer.step()
+
+    # zero the parameter gradients
+    optimizer.zero_grad()
+
+    # evaluate
+    with torch.no_grad():
+        predicted = outputs.logits.argmax(dim=1)
+
+        # note that the metric expects predictions + labels as numpy arrays
+        metric.add_batch(predictions=predicted.detach().cpu().numpy(), references=labels.detach().cpu().numpy())
+
+    if idx % 100 == 0:
+        metrics = metric.compute(
+            num_labels=len(id2label),
+            ignore_index=0,
+            reduce_labels=False,
+        )
+
+        print("Loss:", loss.item())
+        print("Mean_iou:", metrics["mean_iou"])
+        print("Mean accuracy:", metrics["mean_accuracy"])
+
+
+
