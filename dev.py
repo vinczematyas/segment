@@ -3,84 +3,95 @@ from typing import Literal
 import matplotlib.pyplot as plt
 import PIL.Image as Image
 from glob import glob
+from datasets import load_dataset
+import torch
+import albumentations as A
+from typing import Optional
+from dataclasses import dataclass, field
 
-# from notebook
-from dataclasses import dataclass
+# Load dataset from Hugging Face
+ds = load_dataset("vinczematyas/stranger_sections_2")
 
-@dataclass
-class TrainingConfig:
-    batch_size: int = 8
-    epochs: int = 1
-    learning_rate: float = 1e-4
-    lr_decay_rate: float = 0.9998
-    seed: int = 420
-    model_name: str = 'nvidia/mit-b0'
-    project_name: str = 'segment'  # for wandb
-    device: Optional[str] = field(default_factory=lambda: 'cuda' if torch.cuda.is_available() else 'cpu')
-
-    def asdict(self):
-        return vars(self)
-
-cfg = TrainingConfig()
-
-def load_train_data(image_folder, segmentation_folder):
-    image_segmentation_pairs = {"image": [], "segmentation": []}
-    for filename in os.listdir(image_folder):
-        if filename.endswith(".JPG"):
-            image_path = os.path.join(image_folder, filename)
-            segmentation_path = os.path.join(segmentation_folder, filename.replace(".JPG", "_gt.npy"))
-
-            image = Image.open(image_path)
-            segmentation = np.load(segmentation_path)
-
-            image_segmentation_pairs["image"].append(image)
-            image_segmentation_pairs["segmentation"].append(segmentation)
-
-    dataset = Dataset.from_dict(image_segmentation_pairs)
-    return dataset
-
-image_folder = "data/train/image"
-segmentation_folder = "data/train/label"
-
-ds = load_train_data(image_folder, segmentation_folder)
-ds.shuffle(seed=cfg.seed)
-
+# Define the labels
 id2label = {
-    "0": "lipnite",
-    "1": "vitrinite",
-    "2": "inertinite"
+    0: "background",
+    1: "lipnite",
+    2: "vitrinite",
+    3: "inertinite"
 }
-label2id = {v: k for k, v in id2label.items()}
 
-tokenizer = SegformerImageProcessor.from_pretrained(cfg.model_name)
-model = AutoModelForImageSegmentation.from_pretrained(
-    cfg.model_name, num_labeles = 3, id2label=id2label, label2id=label2id
-).to(cfg.device)
+# Create a color map for each label
+id2color = {k: list(np.random.choice(range(256), size=3)) for k,v in id2label.items()}
+id2color = {
+    1: [74, 167, 79],
+    2: [253, 151, 15],
+    3: [234, 73, 71]
+}
 
-# Image Transformations
-img_transforms = A.Compose(
-    [
-        A.HorizontalFlip(p=0.5),
-        A.OneOf(
-            [
-                A.Downscale(p=0.1, scale_min=0.4, scale_max=0.6),
-                A.GaussNoise(p=0.2),
-            ],
-            p=0.1,
-        ),
-        A.OneOf(
-            [
-                A.RandomBrightnessContrast(p=0.2),
-                A.ColorJitter(p=0.2),
-                A.HueSaturationValue(p=0.2),
-            ],
-            p=0.1,
-        ),
-        A.OneOf([A.PixelDropout(p=0.2), A.RandomGravel(p=0.2)], p=0.15),
-    ]
-)
+# Visualize the dataset
+def visualize_map(image, segmentation_map):
+    print(segmentation_map)
+    color_seg = np.zeros((segmentation_map.shape[0], segmentation_map.shape[1], 3), dtype=np.uint8) # height, width, 3
+    for label, color in id2color.items():
+        print(segmentation_map == label)
+        color_seg[segmentation_map == label, :] = color
 
-train_ds = None  # TODO: transform dataset using set_trainsform
-train_dl = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=True)
+    # Show image + mask
+    img = np.array(image) * 0.5 + color_seg * 0.5
+    img = img.astype(np.uint8)
 
-# TODO: continue w. training loop from https://github.com/mattmdjaga/segformer_b2_clothes/blob/main/train_book.ipynb
+    plt.figure(figsize=(15, 10))
+    plt.imshow(img)
+    plt.show()
+
+# Visualize a random image
+idx = np.random.randint(0, len(ds["train"]))
+visualize_map(ds["train"][idx]["image"], np.array(ds["train"][idx]["segmentation"]))
+
+# Define the dataset class
+class SegmentationDataset(torch.utils.data.Dataset):
+    def __init__(self, dataset, transform):
+        self.dataset = dataset
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        item = self.dataset[idx]
+        original_image = np.array(item["image"])
+        original_segmentation_map = np.array(item["segmentation"])
+
+        transformed = self.transform(image=original_image, mask=original_segmentation_map)
+        image, target = torch.tensor(transformed["image"]), torch.tensor(transformed["mask"])
+
+        image = image.permute(2, 0, 1)
+
+        return image, target, original_image, original_segmentation_map
+
+# Define the transforms
+train_transform = A.Compose([
+    A.Resize(256, 256),  # TODO: what shoudl be the size?
+    A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))  # TODO: change from ImageNet mean and std
+    # TODO: add more augmentations
+])
+test_transform = A.Compose([])
+
+# Create the datasets
+train_dataset = SegmentationDataset(ds["train"], train_transform)
+test_dataset = SegmentationDataset(ds["test"], test_transform)
+
+# Define the collate function
+def collate_fn(inputs):
+    batch = dict()
+    batch["pixel_values"] = torch.stack([i[0] for i in inputs], dim=0)
+    batch["labels"] = torch.stack([i[1] for i in inputs], dim=0)
+    batch["original_images"] = [i[2] for i in inputs]
+    batch["original_segmentation_maps"] = [i[3] for i in inputs]
+
+    return batch
+
+# Create the dataloaders
+train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
+test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=collate_fn)
+
