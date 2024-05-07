@@ -21,7 +21,7 @@ ds = load_dataset("vinczematyas/stranger_sections_2")
 
 # Define the transforms
 train_transform = A.Compose([
-    A.Resize(256, 256),  # TODO: what shoudl be the size?
+    A.Resize(448, 448),  # TODO: what shoudl be the size?
     A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))  # TODO: change from ImageNet mean and std
     # TODO: add more augmentations
 ])
@@ -56,33 +56,33 @@ for epoch in range(epochs):
         pixel_values = batch["pixel_values"].to(device)
         labels = batch["labels"].to(device)
 
-    # forward pass
-    outputs = model(pixel_values, labels=labels)
-    loss = outputs.loss
+        # forward pass
+        outputs = model(pixel_values, labels=labels)
+        loss = outputs.loss
 
-    loss.backward()
-    optimizer.step()
+        loss.backward()
+        optimizer.step()
 
-    # zero the parameter gradients
-    optimizer.zero_grad()
+        # zero the parameter gradients
+        optimizer.zero_grad()
 
-    # evaluate
-    with torch.no_grad():
-        predicted = outputs.logits.argmax(dim=1)
+        # evaluate
+        with torch.no_grad():
+            predicted = outputs.logits.argmax(dim=1)
 
-        # note that the metric expects predictions + labels as numpy arrays
-        metric.add_batch(predictions=predicted.detach().cpu().numpy(), references=labels.detach().cpu().numpy())
+            # note that the metric expects predictions + labels as numpy arrays
+            metric.add_batch(predictions=predicted.detach().cpu().numpy(), references=labels.detach().cpu().numpy())
 
-    if idx % 100 == 0:
-        metrics = metric.compute(
-            num_labels=len(id2label),
-            ignore_index=0,
-            reduce_labels=False,
-        )
+        if idx % 100 == 0:
+            metrics = metric.compute(
+                num_labels=len(id2label),
+                ignore_index=0,
+                reduce_labels=False,
+            )
 
-        print("Loss:", loss.item())
-        print("Mean_iou:", metrics["mean_iou"])
-        print("Mean accuracy:", metrics["mean_accuracy"])
+            print("Loss:", loss.item())
+            print("Mean_iou:", metrics["mean_iou"])
+            print("Mean accuracy:", metrics["mean_accuracy"])
 
 
 
