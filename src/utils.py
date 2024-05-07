@@ -10,6 +10,7 @@ def collate_fn(inputs):
     batch["labels"] = torch.stack([i[1] for i in inputs], dim=0)
     batch["original_images"] = [i[2] for i in inputs]
     batch["original_segmentation_maps"] = [i[3] for i in inputs]
+    batch["file_names"] = [i[4] for i in inputs]
     return batch
 
 
@@ -26,13 +27,14 @@ class SegmentationDataset(torch.utils.data.Dataset):
         item = self.dataset[idx]
         original_image = np.array(item["image"])
         original_segmentation_map = np.array(item["segmentation"])
+        file_name = item["file_name"]
 
         transformed = self.transform(image=original_image, mask=original_segmentation_map)
         image, target = torch.tensor(transformed["image"]), torch.LongTensor(transformed["mask"])
 
         image = image.permute(2, 0, 1)
 
-        return image, target, original_image, original_segmentation_map
+        return image, target, original_image, original_segmentation_map, file_name
 
 
 id2label = {
