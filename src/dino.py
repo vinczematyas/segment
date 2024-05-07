@@ -1,3 +1,4 @@
+import torch
 from transformers import Dinov2Model, Dinov2PreTrainedModel
 from transformers.modeling_outputs import SemanticSegmenterOutput
 
