@@ -7,6 +7,7 @@ import albumentations as A
 from typing import Optional
 from torch.optim import AdamW
 from tqdm.auto import tqdm
+import evaluate
 
 from src.utils import visualize_map, SegmentationDataset, collate_fn, id2label
 from src.dino import Dinov2ForSemanticSegmentation
