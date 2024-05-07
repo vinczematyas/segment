@@ -2,8 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datasets import load_dataset
 import torch
+from torch.utils.data import DataLoader
 import albumentations as A
 from typing import Optional
+
+from src.utils import visualize_map, SegmentationDataset, collate_fn
+from src.dino import Dinov2ForSemanticSegmentation
 
 # Load dataset from Hugging Face
 ds = load_dataset("vinczematyas/stranger_sections_2")
@@ -16,52 +20,9 @@ id2label = {
     3: "inertinite"
 }
 
-# Create a color map for each label
-id2color = {k: list(np.random.choice(range(256), size=3)) for k,v in id2label.items()}
-id2color = {
-    1: [74, 167, 79],
-    2: [253, 151, 15],
-    3: [234, 73, 71]
-}
-
-# Visualize the dataset
-def visualize_map(image, segmentation_map):
-    color_seg = np.zeros((segmentation_map.shape[0], segmentation_map.shape[1], 3), dtype=np.uint8) # height, width, 3
-    for label, color in id2color.items():
-        color_seg[segmentation_map == label, :] = color
-
-    # Show image + mask
-    img = np.array(image) * 0.5 + color_seg * 0.5
-    img = img.astype(np.uint8)
-
-    plt.figure(figsize=(15, 10))
-    plt.imshow(img)
-    plt.show()
-
 # Visualize a random image
-idx = np.random.randint(0, len(ds["train"]))
-visualize_map(ds["train"][idx]["image"], np.array(ds["train"][idx]["segmentation"]))
-
-# Define the dataset class
-class SegmentationDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset, transform):
-        self.dataset = dataset
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, idx):
-        item = self.dataset[idx]
-        original_image = np.array(item["image"])
-        original_segmentation_map = np.array(item["segmentation"])
-
-        transformed = self.transform(image=original_image, mask=original_segmentation_map)
-        image, target = torch.tensor(transformed["image"]), torch.tensor(transformed["mask"])
-
-        image = image.permute(2, 0, 1)
-
-        return image, target, original_image, original_segmentation_map
+# idx = np.random.randint(0, len(ds["train"]))
+# visualize_map(ds["train"][idx]["image"], np.array(ds["train"][idx]["segmentation"]))
 
 # Define the transforms
 train_transform = A.Compose([
@@ -72,20 +33,16 @@ train_transform = A.Compose([
 test_transform = A.Compose([])
 
 # Create the datasets
-train_dataset = SegmentationDataset(ds["train"], train_transform)
-test_dataset = SegmentationDataset(ds["test"], test_transform)
-
-# Define the collate function
-def collate_fn(inputs):
-    batch = dict()
-    batch["pixel_values"] = torch.stack([i[0] for i in inputs], dim=0)
-    batch["labels"] = torch.stack([i[1] for i in inputs], dim=0)
-    batch["original_images"] = [i[2] for i in inputs]
-    batch["original_segmentation_maps"] = [i[3] for i in inputs]
-
-    return batch
+train_ds = SegmentationDataset(ds["train"], train_transform)
+test_ds = SegmentationDataset(ds["test"], test_transform)
 
 # Create the dataloaders
-train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
-test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=collate_fn)
+train_dl = DataLoader(train_ds, batch_size=2, shuffle=True, collate_fn=collate_fn)
+test_dl = DataLoader(test_ds, batch_size=2, shuffle=False, collate_fn=collate_fn)
 
+model = Dinov2ForSemanticSegmentation.from_pretrained("facebook/dinov2-base", id2label=id2label, num_labels=len(id2label))
+
+for name, param in model.named_parameters():
+  if name.startswith("dinov2"):
+    param.requires_grad = False
+print(model)
