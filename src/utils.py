@@ -35,6 +35,13 @@ class SegmentationDataset(torch.utils.data.Dataset):
         return image, target, original_image, original_segmentation_map
 
 
+id2label = {
+    0: "background",
+    1: "lipnite",
+    2: "vitrinite",
+    3: "inertinite"
+}
+
 id2color = {k: list(np.random.choice(range(256), size=3)) for k,v in id2label.items()}
 id2color = {
     1: [74, 167, 79],

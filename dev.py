@@ -6,20 +6,12 @@ from torch.utils.data import DataLoader
 import albumentations as A
 from typing import Optional
 
-from src.utils import visualize_map, SegmentationDataset, collate_fn
+from src.utils import visualize_map, SegmentationDataset, collate_fn, id2label
 from src.dino import Dinov2ForSemanticSegmentation
 
 # Load dataset from Hugging Face
 ds = load_dataset("vinczematyas/stranger_sections_2")
-
-# Define the labels
-id2label = {
-    0: "background",
-    1: "lipnite",
-    2: "vitrinite",
-    3: "inertinite"
-}
-
+print(id2label)
 # Visualize a random image
 # idx = np.random.randint(0, len(ds["train"]))
 # visualize_map(ds["train"][idx]["image"], np.array(ds["train"][idx]["segmentation"]))
