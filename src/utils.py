@@ -28,7 +28,7 @@ class SegmentationDataset(torch.utils.data.Dataset):
         original_segmentation_map = np.array(item["segmentation"])
 
         transformed = self.transform(image=original_image, mask=original_segmentation_map)
-        image, target = torch.tensor(transformed["image"]), torch.tensor(transformed["mask"])
+        image, target = torch.tensor(transformed["image"]), torch.LongTensor(transformed["mask"])
 
         image = image.permute(2, 0, 1)
 
