@@ -41,7 +41,7 @@ for name, param in model.named_parameters():
     if name.startswith("dinov2"):
         param.requires_grad = False
 
-epochs = 1
+epochs = 10
 optimizer = AdamW(model.parameters(), lr=5e-5)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
