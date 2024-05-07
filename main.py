@@ -32,8 +32,8 @@ train_ds = SegmentationDataset(ds["train"], train_transform)
 test_ds = SegmentationDataset(ds["test"], test_transform)
 
 # Create the dataloaders
-train_dl = DataLoader(train_ds, batch_size=2, shuffle=True, collate_fn=collate_fn, drop_last=True)
-test_dl = DataLoader(test_ds, batch_size=2, shuffle=False, collate_fn=collate_fn)
+train_dl = DataLoader(train_ds, batch_size=1, shuffle=True, collate_fn=collate_fn)
+test_dl = DataLoader(test_ds, batch_size=1, shuffle=False, collate_fn=collate_fn)
 
 model = Dinov2ForSemanticSegmentation.from_pretrained("facebook/dinov2-base", id2label=id2label, num_labels=len(id2label))
 
