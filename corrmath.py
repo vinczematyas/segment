@@ -17,6 +17,19 @@ from src.dino import Dinov2ForSemanticSegmentation
 # Load dataset from Hugging Face
 ds = load_dataset("vinczematyas/stranger_sections_2")
 
+# Define the transforms
+train_transform = A.Compose([
+    A.Resize(448, 448),  # TODO: what shoudl be the size?
+    A.Normalize(mean=(0.443, 0.366, 0.230), std=(0.213, 0.211, 0.219)),  # TODO: change from ImageNet mean and std
+    A.HorizontalFlip(p=0.5),
+    A.VerticalFlip(p=0.5),
+    # TODO: add more augmentations
+])
+test_transform = A.Compose([
+    A.Resize(448, 448),
+    A.Normalize(mean=(0.466, 0.385, 0.194), std=(0.216, 0.220, 0.181)),
+])
+
 # Create the datasets
 train_ds = SegmentationDataset(ds["train"], train_transform)
 unlabeled_ds = SegmentationDataset(ds["unlabeled"], train_transform)
@@ -35,7 +48,6 @@ config = LoraConfig(
     target_modules=["query", "value"],
     lora_dropout=0.1,
     bias="none",
-    modules_to_save=["classifier"],
 )
 lora_model = get_peft_model(model, config)
 print_trainable_parameters(lora_model)
