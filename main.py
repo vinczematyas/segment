@@ -66,6 +66,7 @@ for epoch in trange(25, desc="Initial training"):
 
         # forward pass
         outputs = model(pixel_values, labels=labels)
+
         loss = outputs.loss
 
         loss.backward()
