@@ -1,6 +1,7 @@
 import torch
 from transformers import Dinov2Model, Dinov2PreTrainedModel
 from transformers.modeling_outputs import SemanticSegmenterOutput
+from peft import get_peft_model
 
 
 class LinearClassifier(torch.nn.Module):

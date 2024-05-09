@@ -9,7 +9,7 @@ from torch.optim import AdamW
 from tqdm import trange
 import evaluate
 from PIL import Image
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig
 
 from src.utils import visualize_map, SegmentationDataset, collate_fn, id2label, print_trainable_parameters
 from src.dino import Dinov2ForSemanticSegmentation
