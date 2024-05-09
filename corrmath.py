@@ -11,7 +11,7 @@ import evaluate
 from PIL import Image
 from peft import LoraConfig, get_peft_model
 
-from src.utils import visualize_map, SegmentationDataset, collate_fn, id2label
+from src.utils import visualize_map, SegmentationDataset, collate_fn, id2label, print_trainable_parameters
 from src.dino import Dinov2ForSemanticSegmentation
 
 # Load dataset from Hugging Face
@@ -40,14 +40,21 @@ train_dl = DataLoader(train_ds, batch_size=1, shuffle=True, collate_fn=collate_f
 unlabeled_dl = DataLoader(unlabeled_ds, batch_size=1, shuffle=True, collate_fn=collate_fn)
 test_dl = DataLoader(test_ds, batch_size=1, shuffle=False, collate_fn=collate_fn)
 
-model = Dinov2ForSemanticSegmentation.from_pretrained("facebook/dinov2-base", id2label=id2label, num_labels=len(id2label))
-
-config = LoraConfig(
+lora_config = LoraConfig(
     r=16,
     lora_alpha=16,
     target_modules=["query", "value"],
     lora_dropout=0.1,
     bias="none",
 )
-lora_model = get_peft_model(model, config)
-print_trainable_parameters(lora_model)
+
+model = Dinov2ForSemanticSegmentation.from_pretrained(
+    "facebook/dinov2-base", 
+    id2label=id2label, 
+    num_labels=len(id2label),
+    lora_config=lora_config)
+
+print_trainable_parameters(model.dinov2)
+print_trainable_parameters(model.classifier)
+print_trainable_parameters(model)
+

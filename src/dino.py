@@ -19,10 +19,10 @@ class LinearClassifier(torch.nn.Module):
         return self.classifier(embeddings)
 
 class Dinov2ForSemanticSegmentation(Dinov2PreTrainedModel):
-  def __init__(self, config):
+  def __init__(self, config, lora_config):
     super().__init__(config)
-
-    self.dinov2 = Dinov2Model(config)
+  
+    self.dinov2 = get_peft_model(Dinov2Model(config), lora_config)
     self.classifier = LinearClassifier(config.hidden_size, 32, 32, config.num_labels)
 
   def forward(self, pixel_values, output_hidden_states=False, output_attentions=False, labels=None):
